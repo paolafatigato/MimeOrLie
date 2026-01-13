@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 Mime or Bluff</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6c5ce7;
+            --primary-dark: #5b4cdb;
+            --secondary: #00cec9;
+            --accent: #fd79a8;
+            --dark: #2d3436;
+            --light: #f8f9fa;
+            --danger: #e74c3c;
+            --success: #00b894;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel h2 {
+            color: var(--dark);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--primary);
+            font-size: 1.4rem;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--dark);
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .room-code {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--primary);
+            letter-spacing: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .players-list {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .player-item:last-child {
+            border-bottom: none;
+        }
+
+        .player-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .player-name {
+            flex: 1;
+        }
+
+        .player-badge {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+        }
+
+        /* Card Styles */
+        .game-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: 30px repeat(6, 1fr);
+            font-size: 0.7rem;
+            padding: 0 3px 3px 3px;
+        }
+
+        .card-cell {
+            padding: 5px 2px;
+            text-align: center;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            word-break: break-word;
+            font-size: 0.65rem;
+        }
+
+        .card-cell.header {
+            font-weight: 600;
+            color: #444;
+        }
+
+        .card-cell.row-header {
+            font-weight: 600;
+            color: #444;
+        }
+
+        .card-cell.hidden span {
+            visibility: hidden;
+        }
+
+        .card-cell.highlight {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { background: #fff3cd; }
+            50% { background: #ffeaa7; }
+        }
+
+        /* Current Call Display */
+        .current-call-display {
+            text-align: center;
+            padding: 20px;
+            margin: 15px 0;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 15px;
+            color: white;
+        }
+
+        .current-call-display .call {
+            font-size: 4rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .current-call-display .word {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .waiting {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .waiting .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ddd;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .history {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .history h3 {
+            margin-bottom: 10px;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .history-item {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 3px;
+            background: var(--primary);
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .status-bar .room-info {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .status-bar .player-count {
+            color: #666;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 5px 10px;
+            margin-bottom: 10px;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.8rem;
+            margin-top: 20px;
+            padding: 10px;
+        }
+
+        .error-msg {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .category-item {
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-item:hover {
+            transform: scale(1.03);
+        }
+
+        .category-item.selected {
+            outline: 3px solid var(--success);
+        }
+
+        .category-item small {
+            display: block;
+            opacity: 0.8;
+            font-size: 0.75rem;
+            margin-top: 3px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .word-count {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .word-count.valid { color: var(--success); }
+        .word-count.invalid { color: var(--danger); }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: #eee;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎭 Mime or Bluff</h1>
+            <p>Can you fake it?</p>
+        </header>
+
+        <!-- Home Panel -->
+        <div id="home-panel" class="panel active">
+            <h2>🏠 Welcome!</h2>
+            <button class="btn btn-primary" onclick="showPanel('create-room')">
+                🎮 Create Room
+            </button>
+            <button class="btn btn-secondary" onclick="showPanel('join-room')">
+                🚪 Join Room
+            </button>
+            <button class="btn btn-accent" onclick="showPanel('manage-categories')">
+                📚 Manage Categories
+            </button>
+        </div>
+
+        <!-- Create Room Panel -->
+        <div id="create-room-panel" class="panel">
+            <button class="back-btn" onclick="showPanel('home')">← Back</button>
+            <h2>🎮 Create Room</h2>
+            
+            <div class="form-group">
+                <label>Your Name:</label>
+                <input type="text" id="host-name" placeholder="Enter your name" maxlength="20">
+            </div>
+
+            <div class="form-group">
+                <label>Select Category:</label>
+                <div id="category-select" class="category-grid">
+                    <!-- Categories loaded here -->
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="createRoom()">Create Room</button>
+            <div id="create-error" class="error-msg"></div>
+        </div>
+
+        <!-- Join Room Panel -->
+        <div id="join-room-panel" class="panel">
+            <button class="back-btn" onclick="showPanel('home')">← Back</button>
+            <h2>🚪 Join Room</h2>
+            
+            <div class="form-group">
+                <label>Your Name:</label>
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
+            </div>
+
+            <div class="form-group">
+                <label>Room Code:</label>
+                <input type="text" id="room-code-input" placeholder="Enter 6-letter code" maxlength="6" style="text-transform: uppercase; letter-spacing: 3px; text-align: center;">
+            </div>
+
+            <button class="btn btn-success" onclick="joinRoom()">Join Room</button>
+            <div id="join-error" class="error-msg"></div>
+        </div>
+
+        <!-- Lobby Panel (Host) -->
+        <div id="lobby-host-panel" class="panel">
+            <h2>🎮 Room Lobby</h2>
+            
+            <p style="text-align: center; margin-bottom: 10px;">Share this code:</p>
+            <div class="room-code" id="lobby-room-code">------</div>
+            
+            <div class="players-list">
+                <strong>Players:</strong>
+                <div id="lobby-players">
+                    <!-- Players loaded here -->
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="startGame()">🚀 Start Game</button>
+            <button class="btn btn-secondary btn-small" onclick="leaveRoom()">Leave Room</button>
+        </div>
+
+        <!-- Lobby Panel (Player) -->
+        <div id="lobby-player-panel" class="panel">
+            <h2>🎮 Waiting for Host</h2>
+            
+            <div class="room-code" id="player-room-code">------</div>
+            
+            <div class="players-list">
+                <strong>Players:</strong>
+                <div id="player-lobby-players">
+                    <!-- Players loaded here -->
+                </div>
+            </div>
+
+            <div class="waiting">
+                <div class="spinner"></div>
+                <p>Waiting for host to start...</p>
+            </div>
+
+            <button class="btn btn-secondary btn-small" onclick="leaveRoom()">Leave Room</button>
+        </div>
+
+        <!-- Game Panel -->
+        <div id="game-panel" class="panel">
+            <div class="status-bar">
+                <span class="room-info">Room: <span id="game-room-code"></span></span>
+                <span class="player-count"><span id="game-player-count"></span> players</span>
+            </div>
+
+            <div id="current-call-area">
+                <div class="current-call-display">
+                    <div class="call" id="current-call">--</div>
+                    <div class="word" id="current-word">Press button to start</div>
+                </div>
+            </div>
+
+            <div id="host-controls" style="display: none; margin-bottom: 15px;">
+                <button class="btn btn-accent" onclick="makeRandomCall()">🎲 Random Call</button>
+            </div>
+
+            <div id="player-card-container">
+                <!-- Player's card will be rendered here -->
+            </div>
+
+            <div class="history">
+                <h3>📜 History</h3>
+                <div id="game-history"></div>
+            </div>
+
+            <button class="btn btn-secondary btn-small" style="margin-top: 15px;" onclick="leaveRoom()">Leave Game</button>
+        </div>
+
+        <!-- Manage Categories Panel -->
+        <div id="manage-categories-panel" class="panel">
+            <button class="back-btn" onclick="showPanel('home')">← Back</button>
+            <h2>📚 Manage Categories</h2>
+
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('existing')">Existing</button>
+                <button class="tab" onclick="showTab('add-new')">+ Add New</button>
+            </div>
+
+            <div id="existing-tab" class="tab-content active">
+                <div id="manage-category-list" class="category-grid">
+                    <!-- Categories loaded here -->
+                </div>
+            </div>
+
+            <div id="add-new-tab" class="tab-content">
+                <div class="form-group">
+                    <label>Category Name:</label>
+                    <input type="text" id="new-category-name" placeholder="e.g., Animals, Movies...">
+                </div>
+                <div class="form-group">
+                    <label>Words (6-72, comma separated):</label>
+                    <textarea id="new-category-words" placeholder="word1, word2, word3..."></textarea>
+                    <div id="new-word-count" class="word-count">Words: 0 (min 6, max 72)</div>
+                </div>
+                <button class="btn btn-success" onclick="addNewCategory()">Add Category</button>
+            </div>
+        </div>
+
+        <footer>Ms Fatigato</footer>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhL5myUE8YK6Nb5g__dIf63gLQ-vxBzAo",
+            authDomain: "mimeorlie.firebaseapp.com",
+            databaseURL: "https://mimeorlie-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "mimeorlie",
+            storageBucket: "mimeorlie.firebasestorage.app",
+            messagingSenderId: "297869426558",
+            appId: "1:297869426558:web:6d072373c73237b8acbd2f"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Game State
+        let currentRoom = null;
+        let currentPlayer = null;
+        let isHost = false;
+        let playerCard = null;
+        let roomRef = null;
+        let categories = {};
+
+        // Default Categories
+        const defaultCategories = {
+            "Animals": [
+                "Dog", "Cat", "Elephant", "Lion", "Tiger", "Bear",
+                "Monkey", "Giraffe", "Zebra", "Hippo", "Rhino", "Crocodile",
+                "Snake", "Turtle", "Frog", "Rabbit", "Horse", "Cow",
+                "Pig", "Sheep", "Goat", "Chicken", "Duck", "Eagle",
+                "Owl", "Penguin", "Dolphin", "Whale", "Shark", "Octopus",
+                "Butterfly", "Bee", "Spider", "Kangaroo", "Koala", "Panda"
+            ],
+            "Jobs": [
+                "Doctor", "Teacher", "Chef", "Pilot", "Nurse", "Firefighter",
+                "Police Officer", "Dentist", "Architect", "Engineer", "Lawyer", "Photographer",
+                "Musician", "Actor", "Director", "Writer", "Farmer", "Baker",
+                "Mechanic", "Electrician", "Plumber", "Carpenter", "Painter", "Dancer",
+                "Waiter", "Bartender", "Manager", "Scientist", "Professor", "Librarian",
+                "Coach", "Athlete", "Judge", "Soldier", "Astronaut", "Veterinarian"
+            ],
+            "Actions": [
+                "Running", "Jumping", "Swimming", "Dancing", "Singing", "Crying",
+                "Laughing", "Sleeping", "Eating", "Drinking", "Reading", "Writing",
+                "Driving", "Flying", "Climbing", "Falling", "Fighting", "Hugging",
+                "Kissing", "Sneezing", "Coughing", "Yawning", "Stretching", "Painting",
+                "Cooking", "Cleaning", "Shopping", "Fishing", "Hunting", "Hiding",
+                "Searching", "Thinking", "Dreaming", "Praying", "Celebrating", "Mourning"
+            ],
+            "Sports": [
+                "Football", "Basketball", "Tennis", "Swimming", "Running", "Cycling",
+                "Boxing", "Wrestling", "Karate", "Judo", "Gymnastics", "Skating",
+                "Skiing", "Surfing", "Golf", "Baseball", "Volleyball", "Hockey",
+                "Rugby", "Cricket", "Bowling", "Archery", "Fencing", "Rowing",
+                "Diving", "Climbing", "Skateboarding", "Snowboarding", "Yoga", "Weightlifting",
+                "Marathon", "Triathlon", "Polo", "Badminton", "Table Tennis", "Squash"
+            ]
+        };
+
+        // Initialize
+        function init() {
+            loadCategories();
+            setupWordCounter();
+        }
+
+        // Load categories from localStorage
+        function loadCategories() {
+            const saved = localStorage.getItem('mimeOrBluffCategories');
+            if (saved) {
+                categories = JSON.parse(saved);
+            } else {
+                categories = { ...defaultCategories };
+                saveCategories();
+            }
+        }
+
+        // Save categories to localStorage
+        function saveCategories() {
+            localStorage.setItem('mimeOrBluffCategories', JSON.stringify(categories));
+        }
+
+        // Show panel
+        function showPanel(name) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`${name}-panel`).classList.add('active');
+            
+            if (name === 'create-room') {
+                renderCategorySelect();
+            } else if (name === 'manage-categories') {
+                renderManageCategories();
+            }
+        }
+
+        // Show tab
+        function showTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="showTab('${name}')"]`).classList.add('active');
+            document.getElementById(`${name}-tab`).classList.add('active');
+        }
+
+        // Setup word counter
+        function setupWordCounter() {
+            const textarea = document.getElementById('new-category-words');
+            if (textarea) {
+                textarea.addEventListener('input', () => {
+                    const words = textarea.value.split(',').map(w => w.trim()).filter(w => w.length > 0);
+                    const countDiv = document.getElementById('new-word-count');
+                    const isValid = words.length >= 6 && words.length <= 72;
+                    countDiv.textContent = `Words: ${words.length} (min 6, max 72)`;
+                    countDiv.className = 'word-count ' + (isValid ? 'valid' : 'invalid');
+                });
+            }
+        }
+
+        // Render category select for room creation
+        let selectedCategory = null;
+
+        function renderCategorySelect() {
+            const container = document.getElementById('category-select');
+            container.innerHTML = '';
+            
+            Object.keys(categories).forEach(cat => {
+                const words = categories[cat];
+                const rows = Math.ceil(words.length / 6);
+                const div = document.createElement('div');
+                div.className = 'category-item' + (selectedCategory === cat ? ' selected' : '');
+                div.innerHTML = `${cat}<small>${words.length} words</small>`;
+                div.onclick = () => {
+                    selectedCategory = cat;
+                    renderCategorySelect();
+                };
+                container.appendChild(div);
+            });
+        }
+
+        // Render manage categories
+        function renderManageCategories() {
+            const container = document.getElementById('manage-category-list');
+            container.innerHTML = '';
+            
+            Object.keys(categories).forEach(cat => {
+                const words = categories[cat];
+                const div = document.createElement('div');
+                div.className = 'category-item';
+                div.innerHTML = `${cat}<small>${words.length} words</small>`;
+                div.onclick = () => {
+                    if (confirm(`Delete "${cat}"?`)) {
+                        delete categories[cat];
+                        saveCategories();
+                        renderManageCategories();
+                    }
+                };
+                container.appendChild(div);
+            });
+        }
+
+        // Add new category
+        function addNewCategory() {
+            const name = document.getElementById('new-category-name').value.trim();
+            const wordsText = document.getElementById('new-category-words').value;
+            const words = wordsText.split(',').map(w => w.trim()).filter(w => w.length > 0);
+
+            if (!name) {
+                alert('Please enter a category name');
+                return;
+            }
+
+            if (words.length < 6 || words.length > 72) {
+                alert('You need between 6 and 72 words');
+                return;
+            }
+
+            categories[name] = words;
+            saveCategories();
+            
+            document.getElementById('new-category-name').value = '';
+            document.getElementById('new-category-words').value = '';
+            document.getElementById('new-word-count').textContent = 'Words: 0 (min 6, max 72)';
+            
+            alert(`Category "${name}" added!`);
+            showTab('existing');
+            renderManageCategories();
+        }
+
+        // Generate room code
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        // Generate player card (hidden cells)
+        function generatePlayerCard(totalCells) {
+            const allCells = [];
+            for (let i = 0; i < totalCells; i++) {
+                allCells.push(i);
+            }
+            
+            // Shuffle
+            for (let i = allCells.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
+            }
+            
+            // Return half as hidden
+            return allCells.slice(0, Math.floor(totalCells / 2));
+        }
+
+        // Get pastel color
+        function getCardColor(index) {
+            const pastelRainbow = [
+                'rgb(255, 243, 176)', 'rgb(255, 214, 165)', 'rgb(255, 183, 178)',
+                'rgb(255, 200, 221)', 'rgb(244, 178, 255)', 'rgb(216, 191, 255)',
+                'rgb(195, 177, 225)', 'rgb(186, 225, 255)', 'rgb(179, 241, 234)',
+                'rgb(181, 234, 215)'
+            ];
+            return pastelRainbow[index % pastelRainbow.length];
+        }
+
+        function getLighterColor(rgbColor) {
+            const match = rgbColor.match(/rgb\((\d+), (\d+), (\d+)\)/);
+            if (!match) return '#f8f8f8';
+            let r = parseInt(match[1]);
+            let g = parseInt(match[2]);
+            let b = parseInt(match[3]);
+            r = Math.round(r + (255 - r) * 0.7);
+            g = Math.round(g + (255 - g) * 0.7);
+            b = Math.round(b + (255 - b) * 0.7);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        // Create room
+        async function createRoom() {
+            const hostName = document.getElementById('host-name').value.trim();
+            const errorDiv = document.getElementById('create-error');
+            
+            if (!hostName) {
+                errorDiv.textContent = 'Please enter your name';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!selectedCategory) {
+                errorDiv.textContent = 'Please select a category';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            errorDiv.style.display = 'none';
+            
+            const roomCode = generateRoomCode();
+            const words = categories[selectedCategory];
+            
+            const roomData = {
+                code: roomCode,
+                host: hostName,
+                category: selectedCategory,
+                words: words,
+                players: {
+                    [hostName]: {
+                        name: hostName,
+                        isHost: true,
+                        cardIndex: 0,
+                        hiddenCells: [],
+                        joinedAt: Date.now()
+                    }
+                },
+                gameStarted: false,
+                currentCall: null,
+                history: [],
+                createdAt: Date.now()
+            };
+            
+            try {
+                await db.ref(`rooms/${roomCode}`).set(roomData);
+                
+                currentRoom = roomCode;
+                currentPlayer = hostName;
+                isHost = true;
+                playerCard = [];
+                
+                setupRoomListener();
+                
+                document.getElementById('lobby-room-code').textContent = roomCode;
+                showPanel('lobby-host');
+            } catch (error) {
+                errorDiv.textContent = 'Error creating room: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Join room
+        async function joinRoom() {
+            const playerName = document.getElementById('player-name').value.trim();
+            const roomCode = document.getElementById('room-code-input').value.trim().toUpperCase();
+            const errorDiv = document.getElementById('join-error');
+            
+            if (!playerName) {
+                errorDiv.textContent = 'Please enter your name';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!roomCode || roomCode.length !== 6) {
+                errorDiv.textContent = 'Please enter a valid 6-character room code';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            errorDiv.style.display = 'none';
+            
+            try {
+                const snapshot = await db.ref(`rooms/${roomCode}`).once('value');
+                const roomData = snapshot.val();
+                
+                if (!roomData) {
+                    errorDiv.textContent = 'Room not found';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                if (roomData.players && roomData.players[playerName]) {
+                    errorDiv.textContent = 'Name already taken in this room';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                const playerCount = roomData.players ? Object.keys(roomData.players).length : 0;
+                const hiddenCells = generatePlayerCard(roomData.words.length);
+                
+                await db.ref(`rooms/${roomCode}/players/${playerName}`).set({
+                    name: playerName,
+                    isHost: false,
+                    cardIndex: playerCount,
+                    hiddenCells: hiddenCells,
+                    joinedAt: Date.now()
+                });
+                
+                currentRoom = roomCode;
+                currentPlayer = playerName;
+                isHost = false;
+                playerCard = hiddenCells;
+                
+                setupRoomListener();
+                
+                document.getElementById('player-room-code').textContent = roomCode;
+                showPanel('lobby-player');
+            } catch (error) {
+                errorDiv.textContent = 'Error joining room: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Setup room listener
+        function setupRoomListener() {
+            if (roomRef) {
+                roomRef.off();
+            }
+            
+            roomRef = db.ref(`rooms/${currentRoom}`);
+            
+            roomRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) {
+                    alert('Room has been closed');
+                    leaveRoom();
+                    return;
+                }
+                
+                updateLobby(data);
+                
+                if (data.gameStarted) {
+                    showGamePanel(data);
+                }
+            });
+        }
+
+        // Update lobby display
+        function updateLobby(data) {
+            const playersHtml = Object.values(data.players || {})
+                .sort((a, b) => a.joinedAt - b.joinedAt)
+                .map((p, i) => `
+                    <div class="player-item">
+                        <div class="player-dot" style="background: ${getCardColor(i)}"></div>
+                        <span class="player-name">${p.name}</span>
+                        ${p.isHost ? '<span class="player-badge">Host</span>' : ''}
+                    </div>
+                `).join('');
+            
+            document.getElementById('lobby-players').innerHTML = playersHtml;
+            document.getElementById('player-lobby-players').innerHTML = playersHtml;
+        }
+
+        // Start game
+        async function startGame() {
+            if (!isHost) return;
+            
+            try {
+                await db.ref(`rooms/${currentRoom}/gameStarted`).set(true);
+            } catch (error) {
+                alert('Error starting game: ' + error.message);
+            }
+        }
+
+        // Show game panel
+        function showGamePanel(data) {
+            document.getElementById('game-room-code').textContent = currentRoom;
+            document.getElementById('game-player-count').textContent = Object.keys(data.players || {}).length;
+            
+            if (isHost) {
+                document.getElementById('host-controls').style.display = 'block';
+                playerCard = [];
+            } else {
+                document.getElementById('host-controls').style.display = 'none';
+                const myData = data.players[currentPlayer];
+                if (myData) {
+                    playerCard = myData.hiddenCells || [];
+                }
+            }
+            
+            renderPlayerCard(data);
+            updateCurrentCall(data);
+            updateHistory(data);
+            
+            showPanel('game');
+        }
+
+        // Render player card
+        function renderPlayerCard(data) {
+            const container = document.getElementById('player-card-container');
+            const words = data.words;
+            const totalRows = Math.ceil(words.length / 6);
+            const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+            
+            const myData = data.players[currentPlayer];
+            const cardIndex = myData ? myData.cardIndex : 0;
+            const cardColor = getCardColor(cardIndex);
+            const lightColor = getLighterColor(cardColor);
+            
+            const currentCall = data.currentCall;
+            let highlightCell = null;
+            if (currentCall) {
+                const col = columns.indexOf(currentCall.charAt(0));
+                const row = parseInt(currentCall.substring(1)) - 1;
+                highlightCell = row * 6 + col;
+            }
+            
+            let html = `<div class="game-card" style="border: 4px solid ${cardColor};">`;
+            html += `<div class="card-header" style="background: ${cardColor};">${isHost ? '👑 Master Card' : '🎭 Your Card'} - ${data.category}</div>`;
+            html += '<div class="card-grid">';
+            
+            // Header row
+            html += `<div class="card-cell header" style="background: ${lightColor};"></div>`;
+            columns.forEach(col => {
+                html += `<div class="card-cell header" style="background: ${lightColor};">${col}</div>`;
+            });
+            
+            // Data rows
+            for (let row = 0; row < totalRows; row++) {
+                html += `<div class="card-cell row-header" style="background: ${lightColor};">${row + 1}</div>`;
+                
+                for (let col = 0; col < 6; col++) {
+                    const cellIndex = row * 6 + col;
+                    const word = cellIndex < words.length ? words[cellIndex] : '';
+                    const isHidden = !isHost && playerCard.includes(cellIndex);
+                    const isHighlight = cellIndex === highlightCell;
+                    
+                    let cellClass = 'card-cell';
+                    if (isHidden) cellClass += ' hidden';
+                    if (isHighlight) cellClass += ' highlight';
+                    
+                    html += `<div class="${cellClass}" style="border: 1px solid ${lightColor};"><span>${word}</span></div>`;
+                }
+            }
+            
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+
+        // Make random call
+        async function makeRandomCall() {
+            if (!isHost) return;
+            
+            try {
+                const snapshot = await db.ref(`rooms/${currentRoom}`).once('value');
+                const data = snapshot.val();
+                
+                const words = data.words;
+                const totalRows = Math.ceil(words.length / 6);
+                const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+                const history = data.history || [];
+                
+                // Get all possible cells
+                const allCells = [];
+                for (let row = 1; row <= totalRows; row++) {
+                    for (let col = 0; col < 6; col++) {
+                        const cellIndex = (row - 1) * 6 + col;
+                        if (cellIndex < words.length) {
+                            const call = `${columns[col]}${row}`;
+                            if (!history.includes(call)) {
+                                allCells.push(call);
+                            }
+                        }
+                    }
+                }
+                
+                if (allCells.length === 0) {
+                    alert('All cells have been called!');
+                    return;
+                }
+                
+                // Pick random
+                const call = allCells[Math.floor(Math.random() * allCells.length)];
+                
+                // Update Firebase
+                await db.ref(`rooms/${currentRoom}/currentCall`).set(call);
+                await db.ref(`rooms/${currentRoom}/history`).set([...history, call]);
+                
+            } catch (error) {
+                alert('Error making call: ' + error.message);
+            }
+        }
+
+        // Update current call display
+        function updateCurrentCall(data) {
+            const callDiv = document.getElementById('current-call');
+            const wordDiv = document.getElementById('current-word');
+            
+            if (data.currentCall) {
+                const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+                const col = columns.indexOf(data.currentCall.charAt(0));
+                const row = parseInt(data.currentCall.substring(1)) - 1;
+                const cellIndex = row * 6 + col;
+                const word = data.words[cellIndex];
+                
+                callDiv.textContent = data.currentCall;
+                
+                // Only host sees the word
+                if (isHost) {
+                    wordDiv.textContent = word;
+                } else {
+                    const isHidden = playerCard.includes(cellIndex);
+                    wordDiv.textContent = isHidden ? '???' : word;
+                }
+            } else {
+                callDiv.textContent = '--';
+                wordDiv.textContent = 'Waiting for call...';
+            }
+        }
+
+        // Update history
+        function updateHistory(data) {
+            const container = document.getElementById('game-history');
+            const history = data.history || [];
+            const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+            
+            container.innerHTML = history.map(call => {
+                const col = columns.indexOf(call.charAt(0));
+                const row = parseInt(call.substring(1)) - 1;
+                const cellIndex = row * 6 + col;
+                const word = data.words[cellIndex];
+                return `<span class="history-item">${call}: ${word}</span>`;
+            }).join('');
+        }
+
+        // Leave room
+        async function leaveRoom() {
+            if (roomRef) {
+                roomRef.off();
+            }
+            
+            if (currentRoom && currentPlayer) {
+                try {
+                    if (isHost) {
+                        // Host leaving deletes the room
+                        await db.ref(`rooms/${currentRoom}`).remove();
+                    } else {
+                        // Player leaving removes themselves
+                        await db.ref(`rooms/${currentRoom}/players/${currentPlayer}`).remove();
+                    }
+                } catch (error) {
+                    console.error('Error leaving room:', error);
+                }
+            }
+            
+            currentRoom = null;
+            currentPlayer = null;
+            isHost = false;
+            playerCard = null;
+            roomRef = null;
+            selectedCategory = null;
+            
+            showPanel('home');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
