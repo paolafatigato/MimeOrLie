@@ -452,6 +452,130 @@
         .tab-content.active {
             display: block;
         }
+
+        /* Edit Category Styles */
+        .edit-words-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            min-height: 100px;
+            margin-bottom: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .word-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 15px;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+        }
+
+        .word-chip:hover {
+            transform: scale(1.05);
+        }
+
+        .word-chip.dragging {
+            opacity: 0.5;
+        }
+
+        .word-chip.duplicate {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .word-chip.similar {
+            background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+        }
+
+        .word-chip .delete-word {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .word-chip .delete-word:hover {
+            background: var(--danger);
+        }
+
+        .word-chip.drag-over {
+            margin-left: 25px;
+        }
+
+        .edit-info {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .category-item-wrapper {
+            position: relative;
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+            justify-content: center;
+        }
+
+        .category-actions button {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-edit-cat {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .btn-delete-cat {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+        }
+
+        .add-word-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .add-word-row input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .add-word-row input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .add-word-row button {
+            padding: 10px 15px;
+        }
     </style>
 </head>
 <body>
@@ -592,6 +716,7 @@
             <div class="tabs">
                 <button class="tab active" onclick="showTab('existing')">Existing</button>
                 <button class="tab" onclick="showTab('add-new')">+ Add New</button>
+                <button class="tab" onclick="showTab('edit-cat')" id="edit-tab" style="display: none;">✏️ Edit</button>
             </div>
 
             <div id="existing-tab" class="tab-content active">
@@ -611,6 +736,26 @@
                     <div id="new-word-count" class="word-count">Words: 0 (min 6, max 72)</div>
                 </div>
                 <button class="btn btn-success" onclick="addNewCategory()">Add Category</button>
+            </div>
+
+            <div id="edit-cat-tab" class="tab-content">
+                <h3 style="margin-bottom: 10px;">✏️ Editing: <span id="edit-cat-name"></span></h3>
+                <div class="edit-info">
+                    <strong>Drag</strong> to reorder • <strong>×</strong> to delete • <span style="color: #e74c3c;">●</span> duplicates • <span style="color: #f39c12;">●</span> similar
+                </div>
+                <div id="edit-words-container" class="edit-words-container">
+                    <!-- Word chips here -->
+                </div>
+                <div class="add-word-row">
+                    <input type="text" id="edit-new-word" placeholder="Add new word...">
+                    <button class="btn btn-primary btn-small" onclick="addWordToEdit()">+ Add</button>
+                    <button class="btn btn-secondary btn-small" onclick="shuffleEditWords()">🔀</button>
+                </div>
+                <div id="edit-word-count" class="word-count"></div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn btn-success" onclick="saveEditedCategory()">💾 Save</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                </div>
             </div>
         </div>
 
@@ -731,6 +876,16 @@
                     countDiv.className = 'word-count ' + (isValid ? 'valid' : 'invalid');
                 });
             }
+            
+            // Enter key to add word in edit mode
+            const editInput = document.getElementById('edit-new-word');
+            if (editInput) {
+                editInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        addWordToEdit();
+                    }
+                });
+            }
         }
 
         // Render category select for room creation
@@ -762,17 +917,238 @@
             Object.keys(categories).forEach(cat => {
                 const words = categories[cat];
                 const div = document.createElement('div');
-                div.className = 'category-item';
-                div.innerHTML = `${cat}<small>${words.length} words</small>`;
-                div.onclick = () => {
-                    if (confirm(`Delete "${cat}"?`)) {
-                        delete categories[cat];
-                        saveCategories();
-                        renderManageCategories();
-                    }
-                };
+                div.className = 'category-item-wrapper';
+                div.innerHTML = `
+                    <div class="category-item" style="cursor: default;">
+                        ${cat}<small>${words.length} words</small>
+                    </div>
+                    <div class="category-actions">
+                        <button class="btn-edit-cat" onclick="editCategory('${cat}')">✏️ Edit</button>
+                        <button class="btn-delete-cat" onclick="deleteCategory('${cat}')">🗑️</button>
+                    </div>
+                `;
                 container.appendChild(div);
             });
+        }
+
+        // Delete category
+        function deleteCategory(cat) {
+            if (confirm(`Delete "${cat}"?`)) {
+                delete categories[cat];
+                saveCategories();
+                renderManageCategories();
+            }
+        }
+
+        // Edit category
+        let editingCategory = null;
+        let editingWords = [];
+
+        function editCategory(cat) {
+            editingCategory = cat;
+            editingWords = [...categories[cat]];
+            
+            document.getElementById('edit-cat-name').textContent = cat;
+            document.getElementById('edit-tab').style.display = 'block';
+            
+            renderEditWords();
+            showTab('edit-cat');
+        }
+
+        function renderEditWords() {
+            const container = document.getElementById('edit-words-container');
+            container.innerHTML = '';
+            
+            const duplicatesAndSimilar = findDuplicatesAndSimilar(editingWords);
+            
+            editingWords.forEach((word, index) => {
+                const chip = document.createElement('div');
+                chip.className = 'word-chip';
+                
+                if (duplicatesAndSimilar.duplicates.has(index)) {
+                    chip.classList.add('duplicate');
+                } else if (duplicatesAndSimilar.similar.has(index)) {
+                    chip.classList.add('similar');
+                }
+                
+                chip.draggable = true;
+                chip.dataset.index = index;
+                chip.innerHTML = `
+                    <span>${word}</span>
+                    <button class="delete-word" onclick="deleteWordFromEdit(${index})">&times;</button>
+                `;
+                
+                chip.addEventListener('dragstart', handleDragStart);
+                chip.addEventListener('dragend', handleDragEnd);
+                chip.addEventListener('dragover', handleDragOver);
+                chip.addEventListener('drop', handleDrop);
+                chip.addEventListener('dragleave', handleDragLeave);
+                
+                container.appendChild(chip);
+            });
+            
+            updateEditWordCount();
+        }
+
+        // Find duplicates and similar words
+        function findDuplicatesAndSimilar(words) {
+            const duplicates = new Set();
+            const similar = new Set();
+            const normalized = words.map(w => w.toLowerCase().trim());
+            
+            for (let i = 0; i < words.length; i++) {
+                for (let j = i + 1; j < words.length; j++) {
+                    if (normalized[i] === normalized[j]) {
+                        duplicates.add(i);
+                        duplicates.add(j);
+                    } else if (areSimilar(normalized[i], normalized[j])) {
+                        if (!duplicates.has(i)) similar.add(i);
+                        if (!duplicates.has(j)) similar.add(j);
+                    }
+                }
+            }
+            
+            return { duplicates, similar };
+        }
+
+        function areSimilar(w1, w2) {
+            if (w1.includes(w2) || w2.includes(w1)) return true;
+            
+            const suffixes = ['s', 'es', 'ed', 'ing', 'er', 'ly', 'tion', 'sion'];
+            for (const suffix of suffixes) {
+                if (w1 === w2 + suffix || w2 === w1 + suffix) return true;
+                if (w1 + 'e' === w2 + suffix || w2 + 'e' === w1 + suffix) return true;
+            }
+            
+            if (w1.length <= 6 && w2.length <= 6 && levenshtein(w1, w2) <= 1) return true;
+            if (w1.length > 6 && w2.length > 6 && levenshtein(w1, w2) <= 2) return true;
+            
+            return false;
+        }
+
+        function levenshtein(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+            
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        // Drag and drop handlers
+        let draggedIndex = null;
+
+        function handleDragStart(e) {
+            draggedIndex = parseInt(e.target.dataset.index);
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.word-chip').forEach(chip => {
+                chip.classList.remove('drag-over');
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const chip = e.target.closest('.word-chip');
+            if (chip && parseInt(chip.dataset.index) !== draggedIndex) {
+                chip.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const chip = e.target.closest('.word-chip');
+            if (chip) chip.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const chip = e.target.closest('.word-chip');
+            if (!chip) return;
+            
+            const dropIndex = parseInt(chip.dataset.index);
+            if (draggedIndex === null || draggedIndex === dropIndex) return;
+            
+            const word = editingWords.splice(draggedIndex, 1)[0];
+            editingWords.splice(dropIndex, 0, word);
+            
+            renderEditWords();
+            draggedIndex = null;
+        }
+
+        function deleteWordFromEdit(index) {
+            editingWords.splice(index, 1);
+            renderEditWords();
+        }
+
+        function addWordToEdit() {
+            const input = document.getElementById('edit-new-word');
+            const word = input.value.trim();
+            
+            if (!word) return;
+            if (editingWords.length >= 72) {
+                alert('Maximum 72 words!');
+                return;
+            }
+            
+            editingWords.push(word);
+            input.value = '';
+            renderEditWords();
+        }
+
+        function shuffleEditWords() {
+            for (let i = editingWords.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [editingWords[i], editingWords[j]] = [editingWords[j], editingWords[i]];
+            }
+            renderEditWords();
+        }
+
+        function updateEditWordCount() {
+            const countDiv = document.getElementById('edit-word-count');
+            const count = editingWords.length;
+            const rows = Math.ceil(count / 6);
+            const isValid = count >= 6 && count <= 72;
+            countDiv.textContent = `Words: ${count} (${rows} rows) - ${isValid ? '✓ Valid' : 'Need at least 6'}`;
+            countDiv.className = 'word-count ' + (isValid ? 'valid' : 'invalid');
+        }
+
+        function saveEditedCategory() {
+            if (editingWords.length < 6) {
+                alert('You need at least 6 words!');
+                return;
+            }
+            
+            categories[editingCategory] = [...editingWords];
+            saveCategories();
+            
+            editingCategory = null;
+            editingWords = [];
+            document.getElementById('edit-tab').style.display = 'none';
+            
+            showTab('existing');
+            renderManageCategories();
+        }
+
+        function cancelEdit() {
+            editingCategory = null;
+            editingWords = [];
+            document.getElementById('edit-tab').style.display = 'none';
+            showTab('existing');
         }
 
         // Add new category
