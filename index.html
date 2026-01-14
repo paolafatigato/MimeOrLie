@@ -529,28 +529,39 @@
             position: relative;
         }
 
-        .category-actions {
+        .category-item .category-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            left: 5px;
+            display: none;
+            justify-content: space-between;
+        }
+
+        .category-item:hover .category-actions {
             display: flex;
-            gap: 5px;
-            margin-top: 8px;
-            justify-content: center;
         }
 
         .category-actions button {
-            padding: 4px 10px;
-            font-size: 0.75rem;
+            padding: 3px 8px;
+            font-size: 0.7rem;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            opacity: 0.9;
+        }
+
+        .category-actions button:hover {
+            opacity: 1;
         }
 
         .btn-edit-cat {
-            background: rgba(255,255,255,0.3);
-            color: white;
+            background: rgba(255,255,255,0.9);
+            color: var(--primary);
         }
 
         .btn-delete-cat {
-            background: rgba(231, 76, 60, 0.8);
+            background: rgba(231, 76, 60, 0.9);
             color: white;
         }
 
@@ -653,7 +664,13 @@
                 </div>
             </div>
 
-            <button class="btn btn-success" onclick="startGame()">🚀 Start Game</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="btn btn-success" style="flex: 1;" onclick="startGame(true)">🎭 Start as Player</button>
+                <button class="btn btn-accent" style="flex: 1;" onclick="startGame(false)">👑 Start as Host Only</button>
+            </div>
+            <p style="font-size: 0.8rem; color: #666; text-align: center; margin-bottom: 15px;">
+                <strong>As Player:</strong> You get a card too! &nbsp; <strong>As Host:</strong> You only manage the game
+            </p>
             <button class="btn btn-secondary btn-small" onclick="leaveRoom()">Leave Room</button>
         </div>
 
@@ -917,15 +934,13 @@
             Object.keys(categories).forEach(cat => {
                 const words = categories[cat];
                 const div = document.createElement('div');
-                div.className = 'category-item-wrapper';
+                div.className = 'category-item';
                 div.innerHTML = `
-                    <div class="category-item" style="cursor: default;">
-                        ${cat}<small>${words.length} words</small>
-                    </div>
                     <div class="category-actions">
-                        <button class="btn-edit-cat" onclick="editCategory('${cat}')">✏️ Edit</button>
-                        <button class="btn-delete-cat" onclick="deleteCategory('${cat}')">🗑️</button>
+                        <button class="btn-edit-cat" onclick="event.stopPropagation(); editCategory('${cat}')">✏️</button>
+                        <button class="btn-delete-cat" onclick="event.stopPropagation(); deleteCategory('${cat}')">🗑️</button>
                     </div>
+                    ${cat}<small>${words.length} words</small>
                 `;
                 container.appendChild(div);
             });
@@ -1392,10 +1407,22 @@
         }
 
         // Start game
-        async function startGame() {
+        async function startGame(hostPlays) {
             if (!isHost) return;
             
             try {
+                // If host plays, generate their card
+                if (hostPlays) {
+                    const snapshot = await db.ref(`rooms/${currentRoom}`).once('value');
+                    const data = snapshot.val();
+                    const hiddenCells = generatePlayerCard(data.words.length);
+                    
+                    await db.ref(`rooms/${currentRoom}/players/${currentPlayer}/hiddenCells`).set(hiddenCells);
+                    await db.ref(`rooms/${currentRoom}/players/${currentPlayer}/playsAsPlayer`).set(true);
+                } else {
+                    await db.ref(`rooms/${currentRoom}/players/${currentPlayer}/playsAsPlayer`).set(false);
+                }
+                
                 await db.ref(`rooms/${currentRoom}/gameStarted`).set(true);
             } catch (error) {
                 alert('Error starting game: ' + error.message);
@@ -1407,13 +1434,20 @@
             document.getElementById('game-room-code').textContent = currentRoom;
             document.getElementById('game-player-count').textContent = Object.keys(data.players || {}).length;
             
+            // Host always sees controls
             if (isHost) {
                 document.getElementById('host-controls').style.display = 'block';
-                playerCard = [];
             } else {
                 document.getElementById('host-controls').style.display = 'none';
-                const myData = data.players[currentPlayer];
-                if (myData) {
+            }
+            
+            // Get player's card data
+            const myData = data.players[currentPlayer];
+            if (myData) {
+                // If host and not playing as player, show master card (empty hiddenCells)
+                if (isHost && !myData.playsAsPlayer) {
+                    playerCard = [];
+                } else {
                     playerCard = myData.hiddenCells || [];
                 }
             }
@@ -1437,16 +1471,26 @@
             const cardColor = getCardColor(cardIndex);
             const lightColor = getLighterColor(cardColor);
             
-            const currentCall = data.currentCall;
+            // Determine if showing master card or player card
+            const showMasterCard = isHost && !myData.playsAsPlayer;
+            
+            const currentCallValue = data.currentCall;
             let highlightCell = null;
-            if (currentCall) {
-                const col = columns.indexOf(currentCall.charAt(0));
-                const row = parseInt(currentCall.substring(1)) - 1;
+            if (currentCallValue) {
+                const col = columns.indexOf(currentCallValue.charAt(0));
+                const row = parseInt(currentCallValue.substring(1)) - 1;
                 highlightCell = row * 6 + col;
             }
             
+            let cardLabel = '';
+            if (showMasterCard) {
+                cardLabel = '👑 Master Card';
+            } else {
+                cardLabel = '🎭 Your Card';
+            }
+            
             let html = `<div class="game-card" style="border: 4px solid ${cardColor};">`;
-            html += `<div class="card-header" style="background: ${cardColor};">${isHost ? '👑 Master Card' : '🎭 Your Card'} - ${data.category}</div>`;
+            html += `<div class="card-header" style="background: ${cardColor};">${cardLabel} - ${data.category}</div>`;
             html += '<div class="card-grid">';
             
             // Header row
@@ -1462,7 +1506,7 @@
                 for (let col = 0; col < 6; col++) {
                     const cellIndex = row * 6 + col;
                     const word = cellIndex < words.length ? words[cellIndex] : '';
-                    const isHidden = !isHost && playerCard.includes(cellIndex);
+                    const isHidden = !showMasterCard && playerCard.includes(cellIndex);
                     const isHighlight = cellIndex === highlightCell;
                     
                     let cellClass = 'card-cell';
@@ -1535,13 +1579,12 @@
                 
                 callDiv.textContent = data.currentCall;
                 
-                // Only host sees the word
-                if (isHost) {
-                    wordDiv.textContent = word;
-                } else {
-                    const isHidden = playerCard.includes(cellIndex);
-                    wordDiv.textContent = isHidden ? '???' : word;
-                }
+                // Check if this player sees the word
+                const myData = data.players[currentPlayer];
+                const showMasterCard = isHost && !myData.playsAsPlayer;
+                const isHidden = !showMasterCard && playerCard.includes(cellIndex);
+                
+                wordDiv.textContent = isHidden ? '???' : word;
             } else {
                 callDiv.textContent = '--';
                 wordDiv.textContent = 'Waiting for call...';
