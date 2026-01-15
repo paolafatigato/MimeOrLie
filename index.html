@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎭 Mime or Lie</title>
+    <title>🎭 Mime or Bluff</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -558,6 +558,7 @@
         .btn-edit-cat {
             background: rgba(255,255,255,0.9);
             color: var(--primary);
+            border-radius: 50%;
         }
 
         .btn-delete-cat {
@@ -587,6 +588,151 @@
         .add-word-row button {
             padding: 10px 15px;
         }
+
+        /* Print Cards Styles */
+        .card-options {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .print-cards-preview {
+            margin-top: 15px;
+        }
+
+        .print-card {
+            width: 100%;
+            max-width: 550px;
+            margin: 15px auto;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .print-card .card-header {
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .print-card .card-grid {
+            display: grid;
+            grid-template-columns: 28px repeat(6, 1fr);
+            font-size: 0.7rem;
+            padding: 0 2px 2px 2px;
+        }
+
+        .print-card .card-cell {
+            padding: 4px 2px;
+            text-align: center;
+            min-height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            word-break: break-word;
+            font-size: 0.65rem;
+        }
+
+        .print-card .card-cell.header {
+            font-weight: 600;
+        }
+
+        .print-card .card-cell.hidden span {
+            visibility: hidden;
+        }
+
+        .print-card.master-card {
+            border: 4px solid #2d8a4e !important;
+        }
+
+        .print-card.master-card .card-header {
+            background: linear-gradient(135deg, #2d8a4e 0%, #3ca55c 100%);
+            color: white;
+        }
+
+        .print-card.master-card .card-cell.header,
+        .print-card.master-card .card-cell.row-header {
+            background: #e8f5ec;
+            color: #2d8a4e;
+        }
+
+        .print-card.master-card .card-cell:not(.header):not(.row-header) {
+            border: 1px solid #c8e6d0;
+        }
+
+        /* Print Styles */
+        @media print {
+            @page {
+                size: A4;
+                margin: 3mm;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+
+            header,
+            .main-menu,
+            .panel:not(#create-cards-panel),
+            .back-btn,
+            .card-options,
+            h2,
+            footer,
+            .no-print {
+                display: none !important;
+            }
+
+            #create-cards-panel {
+                display: block !important;
+                padding: 0;
+                margin: 0;
+                box-shadow: none;
+                background: white;
+            }
+
+            .print-cards-preview {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 3mm;
+                justify-content: center;
+            }
+
+            .print-card {
+                width: 140mm;
+                max-height: 95mm;
+                margin: 0;
+                border-radius: 4px;
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+
+            .print-card .card-header {
+                padding: 4px;
+                font-size: 9pt;
+            }
+
+            .print-card .card-grid {
+                font-size: 6pt;
+            }
+
+            .print-card .card-cell {
+                padding: 2px 1px;
+                min-height: 5mm;
+                font-size: 5.5pt;
+            }
+        }
     </style>
 </head>
 <body>
@@ -607,6 +753,9 @@
             </button>
             <button class="btn btn-accent" onclick="showPanel('manage-categories')">
                 📚 Manage Categories
+            </button>
+            <button class="btn btn-success" onclick="showPanel('create-cards')">
+                🖨️ Create Cards to Print
             </button>
         </div>
 
@@ -725,6 +874,33 @@
             <button class="btn btn-secondary btn-small" style="margin-top: 15px;" onclick="leaveRoom()">Leave Game</button>
         </div>
 
+        <!-- Create Cards Panel -->
+        <div id="create-cards-panel" class="panel">
+            <button class="back-btn no-print" onclick="showPanel('home')">← Back</button>
+            <h2 class="no-print">🖨️ Create Cards to Print</h2>
+            
+            <div class="card-options no-print">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Select Category:</label>
+                    <select id="print-category" onchange="updatePrintCategory()">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Number of Player Cards (4-20):</label>
+                    <input type="number" id="print-card-count" min="4" max="20" value="8" style="width: 80px;">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary btn-small" onclick="generatePrintCards()">Generate Cards</button>
+                    <button class="btn btn-secondary btn-small" onclick="printCards()">🖨️ Print</button>
+                </div>
+            </div>
+            
+            <div id="print-cards-preview" class="print-cards-preview">
+                <!-- Cards will be generated here -->
+            </div>
+        </div>
+
         <!-- Manage Categories Panel -->
         <div id="manage-categories-panel" class="panel">
             <button class="back-btn" onclick="showPanel('home')">← Back</button>
@@ -829,13 +1005,9 @@
                 "Cooking", "Cleaning", "Shopping", "Fishing", "Hunting", "Hiding",
                 "Searching", "Thinking", "Dreaming", "Praying", "Celebrating", "Mourning"
             ],
-            "Sports": [
-                "Football", "Basketball", "Tennis", "Swimming", "Running", "Cycling",
-                "Boxing", "Wrestling", "Karate", "Judo", "Gymnastics", "Skating",
-                "Skiing", "Surfing", "Golf", "Baseball", "Volleyball", "Hockey",
-                "Rugby", "Cricket", "Bowling", "Archery", "Fencing", "Rowing",
-                "Diving", "Climbing", "Skateboarding", "Snowboarding", "Yoga", "Weightlifting",
-                "Marathon", "Triathlon", "Polo", "Badminton", "Table Tennis", "Squash"
+            "Alice in Wonderland": [
+                "wandering", "rabbit", "cake", "logic", "authority", "chasing", "Wonderland", "cat", "tea", "shrinking", "rebelling", "mirror", "falling", "innocence", "court", "opening", "running", "questioning", "hearts", "grinning", "fantasy", "mushroom", "pig", "absurd", "remembering", "door", "clock", "animals", "potion", "curious", "disappearing", "awakening", "riddles", "hatter", "key", "eating", "arguing", "time", "roses", "surreal", "queen", "dreaming", "baby", "judging", "cards", "smoking", "transforming", "party", "adventure", "nonsense", "Victorian", "playing", "duchess", "Cheshire", "king", "growing", "talking", "advising", "croquet", "whimsical", "hole", "escaping", "wondering"
+
             ]
         };
 
@@ -870,6 +1042,8 @@
                 renderCategorySelect();
             } else if (name === 'manage-categories') {
                 renderManageCategories();
+            } else if (name === 'create-cards') {
+                renderPrintCategorySelect();
             }
         }
 
@@ -938,7 +1112,7 @@
                 div.innerHTML = `
                     <div class="category-actions">
                         <button class="btn-edit-cat" onclick="event.stopPropagation(); editCategory('${cat}')">✏️</button>
-                        <button class="btn-delete-cat" onclick="event.stopPropagation(); deleteCategory('${cat}')">🗑️</button>
+                        <button class="btn-delete-cat" onclick="event.stopPropagation(); deleteCategory('${cat}')">✖️</button>
                     </div>
                     ${cat}<small>${words.length} words</small>
                 `;
@@ -1164,6 +1338,143 @@
             editingWords = [];
             document.getElementById('edit-tab').style.display = 'none';
             showTab('existing');
+        }
+
+        // ============ PRINT CARDS FUNCTIONS ============
+
+        function renderPrintCategorySelect() {
+            const select = document.getElementById('print-category');
+            select.innerHTML = '<option value="">-- Select --</option>';
+            
+            Object.keys(categories).forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = `${cat} (${categories[cat].length} words)`;
+                select.appendChild(option);
+            });
+        }
+
+        function updatePrintCategory() {
+            // Clear preview when category changes
+            document.getElementById('print-cards-preview').innerHTML = '';
+        }
+
+        function generatePrintCards() {
+            const category = document.getElementById('print-category').value;
+            const count = parseInt(document.getElementById('print-card-count').value);
+            const preview = document.getElementById('print-cards-preview');
+
+            if (!category) {
+                alert('Please select a category!');
+                return;
+            }
+
+            if (count < 4 || count > 20) {
+                alert('Please enter a number between 4 and 20!');
+                return;
+            }
+
+            const words = categories[category];
+            preview.innerHTML = '';
+
+            // Generate master card
+            preview.innerHTML += generatePrintCardHTML(category, words, [], true, 0, count);
+
+            // Generate player cards
+            for (let i = 0; i < count; i++) {
+                const hiddenCells = generatePlayerCard(words.length);
+                preview.innerHTML += generatePrintCardHTML(category, words, hiddenCells, false, i + 1, count);
+            }
+        }
+
+        function generatePrintCardHTML(category, words, hiddenCells, isMaster, playerNum, totalCards) {
+            const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+            const totalRows = Math.ceil(words.length / 6);
+            
+            const cardColor = isMaster ? null : getCardColor(playerNum);
+            const lightColor = isMaster ? null : getLighterColor(cardColor);
+            
+            let html = `<div class="print-card ${isMaster ? 'master-card' : ''}" style="${!isMaster ? `border: 4px solid ${cardColor};` : ''}">`;
+            
+            if (isMaster) {
+                html += `<div class="card-header">👑 MASTER CARD - ${category}</div>`;
+            } else {
+                html += `<div class="card-header" style="background: linear-gradient(135deg, ${cardColor} 0%, ${adjustBrightness(cardColor, -15)} 100%); color: #333;">🎭 Player ${playerNum} - ${category}</div>`;
+            }
+            
+            html += '<div class="card-grid">';
+            
+            // Header row
+            if (isMaster) {
+                html += '<div class="card-cell header" style="background: #e8f5ec;"></div>';
+                columns.forEach(col => {
+                    html += `<div class="card-cell header" style="background: #e8f5ec;">${col}</div>`;
+                });
+            } else {
+                html += `<div class="card-cell header" style="background: ${lightColor};"></div>`;
+                columns.forEach(col => {
+                    html += `<div class="card-cell header" style="background: ${lightColor};">${col}</div>`;
+                });
+            }
+
+            // Data rows
+            for (let row = 0; row < totalRows; row++) {
+                if (isMaster) {
+                    html += `<div class="card-cell row-header" style="background: #e8f5ec;">${row + 1}</div>`;
+                } else {
+                    html += `<div class="card-cell row-header" style="background: ${lightColor};">${row + 1}</div>`;
+                }
+                
+                for (let col = 0; col < 6; col++) {
+                    const cellIndex = row * 6 + col;
+                    const word = cellIndex < words.length ? words[cellIndex] : '';
+                    const isHidden = !isMaster && hiddenCells.includes(cellIndex);
+                    
+                    if (isMaster) {
+                        html += `<div class="card-cell" style="border: 1px solid #c8e6d0;">${word}</div>`;
+                    } else {
+                        const borderColor = adjustBrightness(cardColor, 30);
+                        if (isHidden) {
+                            html += `<div class="card-cell hidden" style="border: 1px solid ${borderColor};"><span>${word}</span></div>`;
+                        } else {
+                            html += `<div class="card-cell" style="border: 1px solid ${borderColor};">${word}</div>`;
+                        }
+                    }
+                }
+            }
+
+            html += '</div></div>';
+            return html;
+        }
+
+        function adjustBrightness(rgbColor, percent) {
+            const match = rgbColor.match(/rgb\((\d+), (\d+), (\d+)\)/);
+            if (!match) return rgbColor;
+            
+            let r = parseInt(match[1]);
+            let g = parseInt(match[2]);
+            let b = parseInt(match[3]);
+            
+            if (percent > 0) {
+                r = Math.min(255, Math.round(r + (255 - r) * (percent / 100)));
+                g = Math.min(255, Math.round(g + (255 - g) * (percent / 100)));
+                b = Math.min(255, Math.round(b + (255 - b) * (percent / 100)));
+            } else {
+                r = Math.max(0, Math.round(r * (1 + percent / 100)));
+                g = Math.max(0, Math.round(g * (1 + percent / 100)));
+                b = Math.max(0, Math.round(b * (1 + percent / 100)));
+            }
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function printCards() {
+            const preview = document.getElementById('print-cards-preview');
+            if (preview.innerHTML.trim() === '') {
+                alert('Please generate cards first!');
+                return;
+            }
+            window.print();
         }
 
         // Add new category
