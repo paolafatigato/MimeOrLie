@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎭 Mime or Bluff</title>
+    <title>🎭 Mime or Lie</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -347,6 +347,68 @@
             font-size: 1.3rem;
             margin-top: 10px;
             opacity: 0.95;
+        }
+
+        /* Home Layout */
+        .home-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .home-row .btn {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .home-row-with-circle {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .home-row-with-circle .btn {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .quick-call-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .quick-call-circle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .quick-call-circle:hover::after {
+            content: 'Quick Call';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--dark);
+            background: white;
+            padding: 3px 8px;
+            border-radius: 5px;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .status-bar {
@@ -764,28 +826,35 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎭 Mime or Bluff</h1>
+            <h1>🎭 Mime or Lie</h1>
             <p>Can you fake it?</p>
         </header>
 
         <!-- Home Panel -->
         <div id="home-panel" class="panel active">
             <h2>🏠 Welcome!</h2>
-            <button class="btn btn-primary" onclick="showPanel('create-room')">
-                🎮 Create Room
-            </button>
-            <button class="btn btn-secondary" onclick="showPanel('join-room')">
-                🚪 Join Room
-            </button>
+            
+            <div class="home-row">
+                <button class="btn btn-primary" onclick="showPanel('create-room')">
+                    🎮 Create Room
+                </button>
+                <button class="btn btn-secondary" onclick="showPanel('join-room')">
+                    🚪 Join Room
+                </button>
+            </div>
+            
             <button class="btn btn-accent" onclick="showPanel('manage-categories')">
                 📚 Manage Categories
             </button>
-            <button class="btn btn-success" onclick="showPanel('create-cards')">
-                🖨️ Create Cards to Print
-            </button>
-            <button class="btn" style="background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%); color: white;" onclick="showPanel('quick-call')">
-                🎲 Quick Call (LIM)
-            </button>
+            
+            <div class="home-row-with-circle">
+                <button class="btn btn-success" onclick="showPanel('create-cards')">
+                    🖨️ Create Cards to Print
+                </button>
+                <button class="quick-call-circle" onclick="showPanel('quick-call')">
+                    🎲
+                </button>
+            </div>
         </div>
 
         <!-- Quick Call Panel -->
@@ -1074,18 +1143,19 @@
             ],
             "Abilities": [
                 "Help my siblings", "Use a map", "Walk a dog", "take care of a rabbit", "Travel by bus", "Write a story",
-"Clean a room", "Edit a document", "Tie shoelaces", "Ride a horse", "Light a fire safely", "Snap fingers",
-"Comfort a crying baby", "Read in English", "Ride the motorcycle", "Read a map", "Play football", "Sew a button",
-"Iron clothes", "Run fast", "Surf", "Lie", "Skateboard", "Wink",
-"Ride a bike", "Pack a school bag", "Use a dictionary", "Wash the dishes", "Work in a group", "Do homework alone",
-"Organize schoolwork", "Count in French", "Remember homework", "Follow rules", "Play volleyball", "Cook eggs",
-"Play the piano", "Cook a typical dessert", "Introduce yourself", "Do a cartwheel", "Play the violin", "Ski",
-"Record a video", "Save money", "Listen carefully", "Give directions", "Draw a picture", "Swim",
-"Play Monopoly", "Bake a cake", "Tell the time", "Keep a secret", "Feed a cat", "Dance Bachata",
-"Use a computer", "Play the drums", "Make the bed", "Climb a tree", "Send an email", "Make a sandwich",
-"Help a friend", "Paint", "Set the table", "Jump high", "Take good photos", "Ice-skate",
-"Play basketball", "Water plants", "Juggle", "Count change", "Whistle", "Cross the road safely"
-            ]
+                "Clean a room", "Edit a document", "Tie shoelaces", "Ride a horse", "Light a fire safely", "Snap fingers",
+                "Comfort a crying baby", "Read in English", "Ride the motorcycle", "Read a map", "Play football", "Sew a button",
+                "Iron clothes", "Run fast", "Surf", "Lie", "Skateboard", "Wink",
+                "Ride a bike", "Pack a school bag", "Use a dictionary", "Wash the dishes", "Work in a group", "Do homework alone",
+                "Organize schoolwork", "Count in French", "Remember homework", "Follow rules", "Play volleyball", "Cook eggs",
+                "Play the piano", "Cook a typical dessert", "Introduce yourself", "Do a cartwheel", "Play the violin", "Ski",
+                "Record a video", "Save money", "Listen carefully", "Give directions", "Draw a picture", "Swim",
+                "Play Monopoly", "Bake a cake", "Tell the time", "Keep a secret", "Feed a cat", "Dance Bachata",
+                "Use a computer", "Play the drums", "Make the bed", "Climb a tree", "Send an email", "Make a sandwich",
+                "Help a friend", "Paint", "Set the table", "Jump high", "Take good photos", "Ice-skate",
+                "Play basketball", "Water plants", "Juggle", "Count change", "Whistle", "Cross the road safely"
+    
+                ]
         };
 
         // Initialize
@@ -2050,7 +2120,7 @@
                         const cellIndex = (row - 1) * 6 + col;
                         if (cellIndex < words.length) {
                             const call = `${columns[col]}${row}`;
-                            if (!history.includes(call)) {
+                            if (!history.some(h => h.call === call)) {
                                 allCells.push(call);
                             }
                         }
@@ -2065,9 +2135,18 @@
                 // Pick random
                 const call = allCells[Math.floor(Math.random() * allCells.length)];
                 
+                // Get word for this call
+                const col = columns.indexOf(call.charAt(0));
+                const row = parseInt(call.substring(1)) - 1;
+                const cellIndex = row * 6 + col;
+                const word = words[cellIndex];
+                
+                // Add current call to history with word (will be revealed on next call)
+                const newHistory = [...history, { call, word }];
+                
                 // Update Firebase
                 await db.ref(`rooms/${currentRoom}/currentCall`).set(call);
-                await db.ref(`rooms/${currentRoom}/history`).set([...history, call]);
+                await db.ref(`rooms/${currentRoom}/history`).set(newHistory);
                 
             } catch (error) {
                 alert('Error making call: ' + error.message);
@@ -2080,38 +2159,25 @@
             const wordDiv = document.getElementById('current-word');
             
             if (data.currentCall) {
-                const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
-                const col = columns.indexOf(data.currentCall.charAt(0));
-                const row = parseInt(data.currentCall.substring(1)) - 1;
-                const cellIndex = row * 6 + col;
-                const word = data.words[cellIndex];
-                
                 callDiv.textContent = data.currentCall;
-                
-                // Check if this player sees the word
-                const myData = data.players[currentPlayer];
-                const showMasterCard = isHost && !myData.playsAsPlayer;
-                const isHidden = !showMasterCard && playerCard.includes(cellIndex);
-                
-                wordDiv.textContent = isHidden ? '???' : word;
+                // Never show the word for current call - always ???
+                wordDiv.textContent = '???';
             } else {
                 callDiv.textContent = '--';
                 wordDiv.textContent = 'Waiting for call...';
             }
         }
 
-        // Update history
+        // Update history - show all except the last one (current call)
         function updateHistory(data) {
             const container = document.getElementById('game-history');
             const history = data.history || [];
-            const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
             
-            container.innerHTML = history.map(call => {
-                const col = columns.indexOf(call.charAt(0));
-                const row = parseInt(call.substring(1)) - 1;
-                const cellIndex = row * 6 + col;
-                const word = data.words[cellIndex];
-                return `<span class="history-item">${call}: ${word}</span>`;
+            // Show all history items except the last one (which is current)
+            const pastHistory = history.slice(0, -1);
+            
+            container.innerHTML = pastHistory.map(item => {
+                return `<span class="history-item">${item.call}: ${item.word}</span>`;
             }).join('');
         }
 
