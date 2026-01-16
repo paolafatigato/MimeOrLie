@@ -326,6 +326,29 @@
             font-size: 0.8rem;
         }
 
+        /* Quick Call Styles */
+        .quick-call-display {
+            text-align: center;
+            padding: 30px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            color: white;
+        }
+
+        .quick-call-letter {
+            font-size: 5rem;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            line-height: 1;
+        }
+
+        .quick-call-word {
+            font-size: 1.3rem;
+            margin-top: 10px;
+            opacity: 0.95;
+        }
+
         .status-bar {
             display: flex;
             justify-content: space-between;
@@ -558,7 +581,6 @@
         .btn-edit-cat {
             background: rgba(255,255,255,0.9);
             color: var(--primary);
-            border-radius: 50%;
         }
 
         .btn-delete-cat {
@@ -668,7 +690,7 @@
         /* Print Styles */
         @media print {
             @page {
-                size: A4;
+                size: A4 landscape;
                 margin: 3mm;
             }
 
@@ -711,11 +733,15 @@
 
             .print-card {
                 width: 140mm;
-                max-height: 95mm;
+                height: 95mm;
                 margin: 0;
                 border-radius: 4px;
                 box-shadow: none;
                 page-break-inside: avoid;
+            }
+
+            .print-card:nth-child(2n) {
+                page-break-after: always;
             }
 
             .print-card .card-header {
@@ -757,6 +783,42 @@
             <button class="btn btn-success" onclick="showPanel('create-cards')">
                 🖨️ Create Cards to Print
             </button>
+            <button class="btn" style="background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%); color: white;" onclick="showPanel('quick-call')">
+                🎲 Quick Call (LIM)
+            </button>
+        </div>
+
+        <!-- Quick Call Panel -->
+        <div id="quick-call-panel" class="panel">
+            <button class="back-btn" onclick="showPanel('home')">← Back</button>
+            <h2>🎲 Quick Call</h2>
+            <p style="color: #666; margin-bottom: 15px;">Show on LIM - students use their printed cards</p>
+            
+            <div class="form-group">
+                <label>Select Category:</label>
+                <select id="quick-call-category" onchange="resetQuickCall()">
+                    <option value="">-- Select --</option>
+                </select>
+            </div>
+
+            <div class="quick-call-display">
+                <div class="quick-call-letter" id="quick-call-result">--</div>
+                <div class="quick-call-word" id="quick-call-word">Select a category and press the button</div>
+            </div>
+
+            <button class="btn btn-accent" style="font-size: 1.3rem; padding: 20px;" onclick="makeQuickCall()">
+                🎲 Random Call
+            </button>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-secondary btn-small" onclick="resetQuickCall()">🔄 Reset</button>
+                <span id="quick-call-counter" style="display: flex; align-items: center; color: #666; font-size: 0.9rem;"></span>
+            </div>
+
+            <div class="history" style="margin-top: 20px;">
+                <h3>📜 Call History</h3>
+                <div id="quick-call-history"></div>
+            </div>
         </div>
 
         <!-- Create Room Panel -->
@@ -997,17 +1059,32 @@
                 "Waiter", "Bartender", "Manager", "Scientist", "Professor", "Librarian",
                 "Coach", "Athlete", "Judge", "Soldier", "Astronaut", "Veterinarian"
             ],
-            "Actions": [
-                "Running", "Jumping", "Swimming", "Dancing", "Singing", "Crying",
-                "Laughing", "Sleeping", "Eating", "Drinking", "Reading", "Writing",
-                "Driving", "Flying", "Climbing", "Falling", "Fighting", "Hugging",
-                "Kissing", "Sneezing", "Coughing", "Yawning", "Stretching", "Painting",
-                "Cooking", "Cleaning", "Shopping", "Fishing", "Hunting", "Hiding",
-                "Searching", "Thinking", "Dreaming", "Praying", "Celebrating", "Mourning"
-            ],
             "Alice in Wonderland": [
-                "wandering", "rabbit", "cake", "logic", "authority", "chasing", "Wonderland", "cat", "tea", "shrinking", "rebelling", "mirror", "falling", "innocence", "court", "opening", "running", "questioning", "hearts", "grinning", "fantasy", "mushroom", "pig", "absurd", "remembering", "door", "clock", "animals", "potion", "curious", "disappearing", "awakening", "riddles", "hatter", "key", "eating", "arguing", "time", "roses", "surreal", "queen", "dreaming", "baby", "judging", "cards", "smoking", "transforming", "party", "adventure", "nonsense", "Victorian", "playing", "duchess", "Cheshire", "king", "growing", "talking", "advising", "croquet", "whimsical", "hole", "escaping", "wondering"
-
+                "Wandering", "Rabbit", "Cake", "Logic", "Authority", "Chasing",
+                "Wonderland", "Cat", "Tea", "Shrinking", "Rebelling", "Mirror",
+                "Falling", "Innocence", "Court", "Opening", "Running", "Questioning",
+                "Hearts", "Grinning", "Fantasy", "Mushroom", "Pig", "Absurd",
+                "Remembering", "Door", "Clock", "Animals", "Potion", "Curious",
+                "Disappearing", "Awakening", "Riddles", "Hatter", "Key", "Eating",
+                "Arguing", "Time", "Roses", "Surreal", "Queen", "Dreaming",
+                "Baby", "Judging", "Cards", "Smoking", "Transforming", "Party",
+                "Adventure", "Nonsense", "Victorian", "Playing", "Duchess", "Cheshire",
+                "King", "Growing", "Talking", "Advising", "Croquet", "Whimsical",
+                "Hole", "Escaping", "Wondering"
+            ],
+            "Abilities": [
+                "Help my siblings", "Use a map", "Walk a dog", "take care of a rabbit", "Travel by bus", "Write a story",
+"Clean a room", "Edit a document", "Tie shoelaces", "Ride a horse", "Light a fire safely", "Snap fingers",
+"Comfort a crying baby", "Read in English", "Ride the motorcycle", "Read a map", "Play football", "Sew a button",
+"Iron clothes", "Run fast", "Surf", "Lie", "Skateboard", "Wink",
+"Ride a bike", "Pack a school bag", "Use a dictionary", "Wash the dishes", "Work in a group", "Do homework alone",
+"Organize schoolwork", "Count in French", "Remember homework", "Follow rules", "Play volleyball", "Cook eggs",
+"Play the piano", "Cook a typical dessert", "Introduce yourself", "Do a cartwheel", "Play the violin", "Ski",
+"Record a video", "Save money", "Listen carefully", "Give directions", "Draw a picture", "Swim",
+"Play Monopoly", "Bake a cake", "Tell the time", "Keep a secret", "Feed a cat", "Dance Bachata",
+"Use a computer", "Play the drums", "Make the bed", "Climb a tree", "Send an email", "Make a sandwich",
+"Help a friend", "Paint", "Set the table", "Jump high", "Take good photos", "Ice-skate",
+"Play basketball", "Water plants", "Juggle", "Count change", "Whistle", "Cross the road safely"
             ]
         };
 
@@ -1044,6 +1121,8 @@
                 renderManageCategories();
             } else if (name === 'create-cards') {
                 renderPrintCategorySelect();
+            } else if (name === 'quick-call') {
+                renderQuickCallCategorySelect();
             }
         }
 
@@ -1112,7 +1191,7 @@
                 div.innerHTML = `
                     <div class="category-actions">
                         <button class="btn-edit-cat" onclick="event.stopPropagation(); editCategory('${cat}')">✏️</button>
-                        <button class="btn-delete-cat" onclick="event.stopPropagation(); deleteCategory('${cat}')">✖️</button>
+                        <button class="btn-delete-cat" onclick="event.stopPropagation(); deleteCategory('${cat}')">🗑️</button>
                     </div>
                     ${cat}<small>${words.length} words</small>
                 `;
@@ -1475,6 +1554,125 @@
                 return;
             }
             window.print();
+        }
+
+        // ============ QUICK CALL FUNCTIONS ============
+
+        let quickCallAvailable = [];
+        let quickCallHistory = [];
+        let quickCallCategory = null;
+
+        function renderQuickCallCategorySelect() {
+            const select = document.getElementById('quick-call-category');
+            select.innerHTML = '<option value="">-- Select --</option>';
+            
+            Object.keys(categories).forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = `${cat} (${categories[cat].length} words)`;
+                select.appendChild(option);
+            });
+        }
+
+        function resetQuickCall() {
+            const category = document.getElementById('quick-call-category').value;
+            
+            if (!category) {
+                quickCallAvailable = [];
+                quickCallHistory = [];
+                quickCallCategory = null;
+                document.getElementById('quick-call-result').textContent = '--';
+                document.getElementById('quick-call-word').textContent = 'Select a category and press the button';
+                document.getElementById('quick-call-history').innerHTML = '';
+                document.getElementById('quick-call-counter').textContent = '';
+                return;
+            }
+
+            quickCallCategory = category;
+            quickCallHistory = [];
+            quickCallAvailable = [];
+            
+            const words = categories[category];
+            const totalRows = Math.ceil(words.length / 6);
+            const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+            
+            for (let row = 1; row <= totalRows; row++) {
+                for (let col = 0; col < 6; col++) {
+                    const cellIndex = (row - 1) * 6 + col;
+                    if (cellIndex < words.length) {
+                        quickCallAvailable.push(`${columns[col]}${row}`);
+                    }
+                }
+            }
+            
+            document.getElementById('quick-call-result').textContent = '--';
+            document.getElementById('quick-call-word').textContent = 'Press the button to start!';
+            document.getElementById('quick-call-history').innerHTML = '';
+            updateQuickCallCounter();
+        }
+
+        function makeQuickCall() {
+            const category = document.getElementById('quick-call-category').value;
+            
+            if (!category) {
+                alert('Please select a category first!');
+                return;
+            }
+            
+            // Initialize if category changed
+            if (quickCallCategory !== category) {
+                resetQuickCall();
+            }
+            
+            if (quickCallAvailable.length === 0) {
+                // Show last word in history before ending
+                if (quickCallHistory.length > 0) {
+                    const last = quickCallHistory[quickCallHistory.length - 1];
+                    const historyDiv = document.getElementById('quick-call-history');
+                    const historyItem = document.createElement('span');
+                    historyItem.className = 'history-item';
+                    historyItem.textContent = `${last.call}: ${last.word}`;
+                    historyDiv.appendChild(historyItem);
+                }
+                document.getElementById('quick-call-result').textContent = '🎉';
+                document.getElementById('quick-call-word').textContent = 'All done!';
+                return;
+            }
+            
+            // Add previous call to history (now we reveal the word)
+            if (quickCallHistory.length > 0) {
+                const prev = quickCallHistory[quickCallHistory.length - 1];
+                const historyDiv = document.getElementById('quick-call-history');
+                const historyItem = document.createElement('span');
+                historyItem.className = 'history-item';
+                historyItem.textContent = `${prev.call}: ${prev.word}`;
+                historyDiv.appendChild(historyItem);
+            }
+            
+            // Pick random
+            const randomIndex = Math.floor(Math.random() * quickCallAvailable.length);
+            const call = quickCallAvailable.splice(randomIndex, 1)[0];
+            
+            // Get word
+            const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+            const col = columns.indexOf(call.charAt(0));
+            const row = parseInt(call.substring(1)) - 1;
+            const cellIndex = row * 6 + col;
+            const word = categories[category][cellIndex];
+            
+            quickCallHistory.push({ call, word });
+            
+            // Update display - only show the call, not the word!
+            document.getElementById('quick-call-result').textContent = call;
+            document.getElementById('quick-call-word').textContent = '???';
+            
+            updateQuickCallCounter();
+        }
+
+        function updateQuickCallCounter() {
+            const total = quickCallHistory.length + quickCallAvailable.length;
+            const remaining = quickCallAvailable.length;
+            document.getElementById('quick-call-counter').textContent = `${remaining}/${total} remaining`;
         }
 
         // Add new category
